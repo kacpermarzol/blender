@@ -10,9 +10,9 @@ import blender_interface
 p = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
 p.add_argument('--mesh_fpath', type=str, required=True, help='The path the output will be dumped to.')
 p.add_argument('--output_dir', type=str, required=True, help='The path the output will be dumped to.')
-p.add_argument('--num_observations', type=int, required=True, help='The path the output will be dumped to.')
-p.add_argument('--sphere_radius', type=float, required=True, help='The path the output will be dumped to.')
-p.add_argument('--mode', type=str, required=True, help='Options: train and test')
+p.add_argument('--num_observations', type=int, required=True, help='The number of observations to render.')
+p.add_argument('--sphere_radius', type=float, required=True, help='The radius of the sphere around which the camera will rotate.')
+p.add_argument('--mode', type=str, required=True, help='Options: train or test')
 
 argv = sys.argv
 argv = sys.argv[sys.argv.index("--") + 1:]
@@ -38,7 +38,7 @@ shapenet_rotation_mat = np.array([[1.0000000e+00,  0.0000000e+00,  0.0000000e+00
                                   [0.0000000e+00, -1.0000000e+00, -1.2246468e-16],
                                   [0.0000000e+00,  1.2246468e-16, -1.0000000e+00]])
 rot_mat = np.eye(3)
-hom_coords = np.array([[0., 0., 0., 1.]]).reshape(1, 4)
+hom_coords = np.array([[0., 0., 0., 1.]])
 obj_pose = np.concatenate((rot_mat, obj_location.reshape(3,1)), axis=-1)
 obj_pose = np.concatenate((obj_pose, hom_coords), axis=0)
 
