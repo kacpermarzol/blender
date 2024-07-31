@@ -29,28 +29,28 @@ if opt.mode == 'train':
 elif opt.mode == 'test':
     cam_locations = util.get_archimedean_spiral(opt.sphere_radius, opt.num_observations)
 elif opt.mode == 'ssdnerf':
-    # cam_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
-    #              [0.0, 0.0, -1.3], [0.5, 1.09087, 0.5], [-0.5, 1.09087, -0.5], [0.6969696969, 0.123123123, 1.987987987]]
+    cam_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
+                 [0.0, 0.0, -1.3], [0.5, 1.09087, 0.5], [-0.5, 1.09087, -0.5]]
 
-    directory = '/Users/kacpermarzol/PycharmProjects/blender/shapenet2/02958343/pose'
-
-    files = [f for f in os.listdir(directory) if f.endswith('.txt')]
-    files.sort(key=lambda x: int(x.split('.')[0]))
-    cam_locations = []
-    for filename in files[:10]:
-        file_path = os.path.join(directory, filename)
-        with open(file_path, 'r') as file:
-            print("FILE ", file_path)
-            lines = file.read().split()
-            floats = []
-            for item in lines:
-                try:
-                    num = float(item)
-                    floats.append(num)
-                except ValueError:
-                    continue
-            first_three_floats = [floats[7], floats[11], floats[3]]
-            cam_locations.append(first_three_floats)
+    # directory = '/Users/kacpermarzol/PycharmProjects/blender/shapenet2/02958343/pose'
+    #
+    # files = [f for f in os.listdir(directory) if f.endswith('.txt')]
+    # files.sort(key=lambda x: int(x.split('.')[0]))
+    # cam_locations = []
+    # for filename in files[:10]:
+    #     file_path = os.path.join(directory, filename)
+    #     with open(file_path, 'r') as file:
+    #         print("FILE ", file_path)
+    #         lines = file.read().split()
+    #         floats = []
+    #         for item in lines:
+    #             try:
+    #                 num = float(item)
+    #                 floats.append(num)
+    #             except ValueError:
+    #                 continue
+    #         first_three_floats = [floats[7], floats[11], floats[3]]
+    #         cam_locations.append(first_three_floats)
 
 obj_location = np.zeros((1,3))
 
