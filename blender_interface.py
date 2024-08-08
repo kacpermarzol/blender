@@ -12,7 +12,7 @@ class BlenderInterface():
 
         # Deselect all. All new object added to the scene will automatically selected.
         self.blender_renderer = bpy.context.scene.render
-        #self.blender_renderer.use_antialiasing = False
+        # self.blender_renderer.use_antialiasing = False
         self.blender_renderer.resolution_x = resolution
         self.blender_renderer.resolution_y = resolution
         self.blender_renderer.resolution_percentage = 100
@@ -48,7 +48,6 @@ class BlenderInterface():
         links = node_tree.links
         links.new(bg_node.outputs['Background'], output_node.inputs['Surface'])
 
-
         # Make light just directional, disable shadows.
         light = bpy.data.lights['Light']
         light.type = 'SUN'
@@ -78,8 +77,9 @@ class BlenderInterface():
 
         # Set up the camera
         self.camera = bpy.context.scene.camera
-        self.camera.data.sensor_height = self.camera.data.sensor_width # Square sensor
-        util.set_camera_focal_length_in_world_units(self.camera.data, 525./512*resolution) # Set focal length to a common value (kinect)
+        self.camera.data.sensor_height = self.camera.data.sensor_width  # Square sensor
+        util.set_camera_focal_length_in_world_units(self.camera.data,
+                                                    525. / 512 * resolution)  # Set focal length to a common value (kinect)
 
         bpy.ops.object.select_all(action='DESELECT')
 
@@ -93,6 +93,7 @@ class BlenderInterface():
         elif ext == ".gltf":
             bpy.ops.import_scene.gltf(filepath=str(fpath))
 
+        print(len(bpy.context.selected_objects))
         obj = bpy.context.selected_objects[0]
         # Correct orientation for GLTF
 
@@ -101,8 +102,8 @@ class BlenderInterface():
         # if object_world_matrix is not None:
         #     obj.matrix_world = object_world_matrix
 
-        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
-        obj.location = (0., 0., 0.) # center the bounding box!
+        #bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
+        #obj.location = (0., 0., 0.) # center the bounding box!
         #norm = lambda t: math.sqrt(t[0] ** 2 + t[1] ** 2 + t[2] ** 2)
         #max_from_tuple = lambda t: max(t)
         #centroid = (1.1017545684487515, 0.5775121106462234, 2.1111159684679746)
@@ -155,11 +156,11 @@ class BlenderInterface():
 
         if write_cam_params:
             K = util.get_calibration_matrix_K_from_blender(self.camera.data)
-            with open(os.path.join(output_dir, 'intrinsics.txt'),'w') as intrinsics_file:
-                intrinsics_file.write('%f %f %f 0.\n'%(K[0][0], K[0][2], K[1][2]))
+            with open(os.path.join(output_dir, 'intrinsics.txt'), 'w') as intrinsics_file:
+                intrinsics_file.write('%f %f %f 0.\n' % (K[0][0], K[0][2], K[1][2]))
                 intrinsics_file.write('0. 0. 0.\n')
                 intrinsics_file.write('1.\n')
-                intrinsics_file.write('%d %d\n'%(self.resolution, self.resolution))
+                intrinsics_file.write('%d %d\n' % (self.resolution, self.resolution))
 
         for i in range(len(blender_cam2world_matrices)):
             self.camera.matrix_world = blender_cam2world_matrices[i]
@@ -169,14 +170,14 @@ class BlenderInterface():
                 continue
 
             # Render the color image
-            self.blender_renderer.filepath = os.path.join(img_dir, '%06d.png'%i)
+            self.blender_renderer.filepath = os.path.join(img_dir, '%06d.png' % i)
             bpy.ops.render.render(write_still=True)
 
             if write_cam_params:
                 # Write out camera pose
                 RT = util.get_world2cam_from_blender_cam(self.camera)
                 cam2world = RT.inverted()
-                with open(os.path.join(pose_dir, '%06d.txt'%i),'w') as pose_file:
+                with open(os.path.join(pose_dir, '%06d.txt' % i), 'w') as pose_file:
                     matrix_flat = []
                     for j in range(4):
                         for k in range(4):
