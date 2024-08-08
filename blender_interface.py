@@ -140,13 +140,11 @@ class BlenderInterface():
                 continue
 
     def render(self, output_dir, blender_cam2world_matrices, write_cam_params=False):
-        x = os.makedirs(output_dir, exist_ok=True)
-        img_dir = os.path.join(output_dir, 'rgb') if write_cam_params else output_dir
         pose_dir = os.path.join(output_dir, 'pose') if write_cam_params else None
 
         if write_cam_params:
-            img_dir = os.path.join(output_dir, 'rgb')
-            pose_dir = os.path.join(output_dir, 'pose')
+            img_dir = os.path.join(output_dir, 'rgb_multi')
+            pose_dir = os.path.join(output_dir, 'pose_multi')
 
             util.cond_mkdir(img_dir)
             util.cond_mkdir(pose_dir)
@@ -154,13 +152,13 @@ class BlenderInterface():
             img_dir = output_dir
             util.cond_mkdir(img_dir)
 
-        if write_cam_params:
-            K = util.get_calibration_matrix_K_from_blender(self.camera.data)
-            with open(os.path.join(output_dir, 'intrinsics.txt'), 'w') as intrinsics_file:
-                intrinsics_file.write('%f %f %f 0.\n' % (K[0][0], K[0][2], K[1][2]))
-                intrinsics_file.write('0. 0. 0.\n')
-                intrinsics_file.write('1.\n')
-                intrinsics_file.write('%d %d\n' % (self.resolution, self.resolution))
+        # if write_cam_params:
+            # K = util.get_calibration_matrix_K_from_blender(self.camera.data)
+            # with open(os.path.join(output_dir, 'intrinsics.txt'),'w') as intrinsics_file:
+            #     intrinsics_file.write('%f %f %f 0.\n'%(K[0][0], K[0][2], K[1][2]))
+            #     intrinsics_file.write('0. 0. 0.\n')
+            #     intrinsics_file.write('1.\n')
+            #     intrinsics_file.write('%d %d\n'%(self.resolution, self.resolution))
 
         for i in range(len(blender_cam2world_matrices)):
             self.camera.matrix_world = blender_cam2world_matrices[i]

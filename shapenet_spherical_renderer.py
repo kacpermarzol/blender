@@ -1,4 +1,3 @@
-import argparse
 import numpy as np
 import os
 import sys
@@ -6,66 +5,80 @@ sys.path.append(os.path.dirname(__file__))
 
 import util
 import blender_interface
+import shutil
+import math
 
-p = argparse.ArgumentParser(description='Renders given obj file by rotation a camera around it.')
-p.add_argument('--mesh_fpath', type=str, required=True, help='The path the output will be dumped to.')
-p.add_argument('--output_dir', type=str, required=True, help='The path the output will be dumped to.')
-p.add_argument('--num_observations', type=int, required=True, help='The number of observations to render.')
-p.add_argument('--sphere_radius', type=float, required=True, help='The radius of the sphere around which the camera will rotate.')
-p.add_argument('--mode', type=str, required=True, help='Options: train or test')
+def prepare_for_render(obj_location, cam_locations):
+    cv_poses = util.look_at(cam_locations, obj_location)
+    blender_poses = [util.cv_cam2world_to_bcam2world(m) for m in cv_poses]
+    rot_mat = np.eye(3)
+    hom_coords = np.array([[0., 0., 0., 1.]]).reshape(1, 4)
+    obj_pose = np.concatenate((rot_mat, obj_location.reshape(3, 1)), axis=-1)
+    obj_pose = np.concatenate((obj_pose, hom_coords), axis=0)
+    return obj_pose, blender_poses
 
-argv = sys.argv
-argv = sys.argv[sys.argv.index("--") + 1:]
+def render_dataset(srn_path, mode, percent=1):
+    all_scenes = os.listdir(srn_path)
+    x_percent = math.ceil(len(all_scenes) * percent)
+    models_path = '/Users/kacpermarzol/Downloads/shapenetcore-gltf/car'
 
-opt = p.parse_args(argv)
+    for scene in all_scenes[:x_percent]:
+        gltf_path = models_path + f'/{scene}.gltf'
+        scene_path = f'shapenet/cars_{mode}/' + scene
+        os.makedirs(scene_path, exist_ok=True)
+        srn_scene_path = os.path.join(srn_path, scene)
+        pose = os.path.join(srn_scene_path, "pose")
+        intrinsics = os.path.join(srn_scene_path, "intrinsics.txt")
 
-instance_name = opt.mesh_fpath.split('/')[-1].split('.')[0]
-instance_dir = os.path.join(opt.output_dir, instance_name)
+        shutil.copy(intrinsics, scene_path)
+        shutil.copytree(pose, scene_path+'/pose', dirs_exist_ok=True)
 
-renderer = blender_interface.BlenderInterface(resolution=128)
+        pose_files = [f for f in os.listdir(pose) if f.endswith('.txt')]
+        pose_files.sort(key=lambda x: int(x.split('.')[0]))
 
-if opt.mode == 'train':
-    cam_locations = util.sample_spherical(opt.num_observations, opt.sphere_radius)
-elif opt.mode == 'test':
-    cam_locations = util.get_archimedean_spiral(opt.sphere_radius, opt.num_observations)
-elif opt.mode == 'ssdnerf':
+        cam_locations = []
 
-    directory = '/Users/piotrwojcik/Downloads/srn_cars-2/cars_train/1a48d03a977a6f0aeda0253452893d75/pose'
+        for pose_file in pose_files:
+            pose_file = os.path.join(pose, pose_file)
+            with open(pose_file, 'r') as file:
+                lines = file.read().split()
+                vals = []
+                for item in lines:
+                    try:
+                        num = float(item)
+                        vals.append(num)
+                    except ValueError:
+                        continue
+                xyz = [vals[7], vals[11], vals[3]]
+                cam_locations.append(xyz)
 
-    files = [f for f in os.listdir(directory) if f.endswith('.txt')]
-    files.sort(key=lambda x: int(x.split('.')[0]))
-    cam_locations = []
-    for filename in files[:10]:
-        file_path = os.path.join(directory, filename)
-        with open(file_path, 'r') as file:
-            print("FILE ", file_path)
-            lines = file.read().split()
-            floats = []
-            for item in lines:
-                try:
-                    num = float(item)
-                    floats.append(num)
-                except ValueError:
-                    continue
-            first_three_floats = [floats[7], floats[11], floats[3]]
-            cam_locations.append(first_three_floats)
-    cam_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
-                 [0.0, 0.0, -1.3], [0.5, 1.09087, 0.5], [-0.5, 1.09087, -0.5]]
+        obj_location = np.zeros((1,3))
 
+        obj_pose, blender_poses = prepare_for_render(obj_location, cam_locations)
+        renderer.import_mesh(gltf_path, scale=1., object_world_matrix=obj_pose)
+        renderer.render(scene_path + '/rgb', blender_poses, write_cam_params=False)
 
-obj_location = np.zeros((1,3))
+        if mode == "train":
+            planes_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
+                                [0.0, 0.0, -1.3], [0.5, 1.09087, 0.5], [-0.5, 1.09087, -0.5]]
+            obj_pose, blender_poses = prepare_for_render(obj_location, planes_locations)
 
-cv_poses = util.look_at(cam_locations, obj_location)
-blender_poses = [util.cv_cam2world_to_bcam2world(m) for m in cv_poses]
+            renderer.import_mesh(gltf_path, scale=1., object_world_matrix=obj_pose)
+            renderer.render(scene_path, blender_poses, write_cam_params=True)
 
-shapenet_rotation_mat = np.array([[1.0000000e+00,  0.0000000e+00,  0.0000000e+00],
-                                  [0.0000000e+00, -1.0000000e+00, -1.2246468e-16],
-                                  [0.0000000e+00,  1.2246468e-16, -1.0000000e+00]])
-rot_mat = np.eye(3)
-hom_coords = np.array([[0., 0., 0., 1.]]).reshape(1, 4)
-obj_pose = np.concatenate((rot_mat, obj_location.reshape(3,1)), axis=-1)
-obj_pose = np.concatenate((obj_pose, hom_coords), axis=0)
+if __name__ == '__main__':
+    print("Rendering from main, preparation")
+    renderer = blender_interface.BlenderInterface(resolution=128)
+    gltf = '/Users/kacpermarzol/Downloads/shapenetcore-gltf/car'
+    srn = '/Users/kacpermarzol/Downloads/srn_cars/'
+    train = srn + 'cars_train'
+    test = srn + 'cars_test'
+    val = srn + 'cars_val'
+    os.makedirs("shapenet/cars_test", exist_ok=True)
+    os.makedirs("shapenet/cars_train", exist_ok=True)
+    os.makedirs("shapenet/cars_val", exist_ok=True)
 
-
-renderer.import_mesh(opt.mesh_fpath, scale=1., object_world_matrix=obj_pose)
-renderer.render(instance_dir, blender_poses, write_cam_params=True)
+    print("start rendering")
+    render_dataset(train, mode="train", percent=0.001)
+    render_dataset(test, mode="test", percent=0.001)
+    render_dataset(val, mode="val", percent=0.001)
