@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import bpy
 import util
 
@@ -16,6 +17,8 @@ class BlenderInterface():
         self.blender_renderer.resolution_y = resolution
         self.blender_renderer.resolution_percentage = 100
         self.blender_renderer.image_settings.file_format = 'PNG'  # set output format to .png
+
+        bpy.context.scene.render.film_transparent = True
 
         # Ensure there is a World in the scene
         if not bpy.context.scene.world:
@@ -36,7 +39,7 @@ class BlenderInterface():
         # Add Background node
         bg_node = nodes.new(type='ShaderNodeBackground')
         bg_node.inputs['Color'].default_value = background_color
-        bg_node.inputs['Strength'].default_value = 1.0
+        bg_node.inputs['Strength'].default_value = 0.0
 
         # Add World Output node
         output_node = nodes.new(type='ShaderNodeOutputWorld')
@@ -45,51 +48,33 @@ class BlenderInterface():
         links = node_tree.links
         links.new(bg_node.outputs['Background'], output_node.inputs['Surface'])
 
-        # Remove existing lights
-        bpy.ops.object.select_by_type(type='LIGHT')
-        bpy.ops.object.delete(use_global=False)
 
-        # Create a main sun lamp for directional light
-        bpy.ops.object.light_add(type='SUN', location=(1.3, 1.3, 0.0))
-        lamp1 = bpy.context.object.data
-        lamp1.use_shadow = True
-        lamp1.specular_factor = 0.5
-        lamp1.energy = 3
+        # Make light just directional, disable shadows.
+        light = bpy.data.lights['Light']
+        light.type = 'SUN'
+        light.use_shadow = False
+        # Possibly disable specular shading:
+        light.specular_factor = 0.0
+        light.energy = 10.0
 
-        bpy.context.object.rotation_euler = (0.785, 0.0, 0)  # Rotate for directional light
+        # Add another light source so stuff facing away from light is not completely dark
+        bpy.ops.object.light_add(type='SUN')
+        light2 = bpy.data.lights['Sun']
+        light2.use_shadow = False
+        light2.specular_factor = 0.0
+        light2.energy = 10.0
+        bpy.data.objects['Sun'].rotation_euler = bpy.data.objects['Light'].rotation_euler
+        bpy.data.objects['Sun'].rotation_euler[0] += 180
 
-        # Create a fill light (area) to soften shadows and give overall illumination
-        bpy.ops.object.light_add(type='AREA', location=(1.3, 1.3, 1.3))
-        lamp2 = bpy.context.object.data
-        lamp2.shape = 'RECTANGLE'
-        lamp2.size = 10
-        lamp2.size_y = 10
-        lamp2.use_shadow = False
-        lamp2.energy = 0.5
-        bpy.context.object.rotation_euler = (0.785, 0.785, 0)  # Rotate for fill light
+        bpy.ops.object.light_add(type='SUN')
+        light2 = bpy.data.lights['Sun.001']
+        light2.use_shadow = False
+        light2.specular_factor = 0.0
+        light2.energy = 1.0
+        bpy.data.objects['Sun.001'].rotation_euler = bpy.data.objects['Light'].rotation_euler
+        bpy.data.objects['Sun.001'].rotation_euler[0] += 90
 
-        # Set the world background to pure white
-        bpy.context.scene.world.use_nodes = True
-        world_nodes = bpy.context.scene.world.node_tree.nodes
-        world_links = bpy.context.scene.world.node_tree.links
-
-        # Remove existing nodes
-        for node in world_nodes:
-            world_nodes.remove(node)
-
-        # Add a background node
-        bg_node = world_nodes.new(type='ShaderNodeBackground')
-        bg_node.inputs['Color'].default_value = (1, 1, 1, 1)  # White background
-        bg_node.inputs['Strength'].default_value = 1.0
-
-        # Add a world output node
-        world_output = world_nodes.new(type='ShaderNodeOutputWorld')
-
-        # Link the background node to the world output
-        world_links.new(bg_node.outputs['Background'], world_output.inputs['Surface'])
-
-        # Ensure the objects are lit properly
-        bpy.context.view_layer.update()
+        # # Set the world background to pure white
 
         # Set up the camera
         self.camera = bpy.context.scene.camera
@@ -113,20 +98,31 @@ class BlenderInterface():
 
         import math
 
-
-
         # if object_world_matrix is not None:
         #     obj.matrix_world = object_world_matrix
 
         bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY', center='BOUNDS')
         obj.location = (0., 0., 0.) # center the bounding box!
+        #norm = lambda t: math.sqrt(t[0] ** 2 + t[1] ** 2 + t[2] ** 2)
+        #max_from_tuple = lambda t: max(t)
+        #centroid = (1.1017545684487515, 0.5775121106462234, 2.1111159684679746)
+        #mmax = (2.34224, 1.8796, 5.57017)
+        #mmin = (-0.163627, -0.0805626, 0.0)
+        #diag = tuple(map(lambda i, j: i - j, mmax, mmin))
+        #center = tuple(map(lambda i, j: i + j, mmax, mmin))
+        #center = (center[0] / 2, center[1] / 2, center[2] / 2)
+        #cc = tuple(map(lambda i, j: i - j, centroid, center))
+        #n = norm(diag)
+        #cc = (cc[0] / n, cc[1] / n, cc[2] / n)
+        #obj.location = cc
+
+        #scale = 1. / (max_from_tuple(diag) / n)
 
         if scale != 1.:
             bpy.ops.transform.resize(value=(scale, scale, scale))
 
-        bpy.ops.transform.rotate(value=math.radians(-270) ,orient_axis="X")
-        bpy.ops.transform.rotate(value=math.radians(90) ,orient_axis="Y")
-
+        bpy.ops.transform.rotate(value=math.pi / 2, orient_axis="X")
+        bpy.ops.transform.rotate(value=math.pi / 2, orient_axis="Y")
 
         # Disable transparency & specularities
         for mat in bpy.data.materials:
