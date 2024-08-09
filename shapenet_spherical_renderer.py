@@ -74,8 +74,8 @@ def render_dataset(srn_path, mode, percent=1):
         white_background(scene_path + '/rgb')
 
         if mode == "train":
-            planes_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
-                                [0.0, 0.0, -1.3], [0.5, 1.09087, 0.5], [-0.5, 1.09087, -0.5]]
+            planes_locations = [[-1.3, 0.0, 0.0], [1.3, 0.0, 0.0], [0.0, 0.0, -1.3],
+                                [0.0, 0.0, 1.3], [-0.5, 1.09087, -0.5], [0.5, 1.09087, 0.5]]
             obj_pose, blender_poses = prepare_for_render(obj_location, planes_locations)
 
             renderer.import_mesh(gltf_path, scale=1., object_world_matrix=obj_pose)
