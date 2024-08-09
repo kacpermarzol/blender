@@ -1,8 +1,6 @@
 import os
-import numpy as np
 import bpy
 import util
-
 class BlenderInterface():
     def __init__(self, resolution=128, background_color=(1, 1, 1, 1)):
         self.resolution = resolution
@@ -139,6 +137,7 @@ class BlenderInterface():
             except AttributeError:
                 continue
 
+
     def render(self, output_dir, blender_cam2world_matrices, write_cam_params=False):
         pose_dir = os.path.join(output_dir, 'pose') if write_cam_params else None
 
@@ -151,7 +150,6 @@ class BlenderInterface():
         else:
             img_dir = output_dir
             util.cond_mkdir(img_dir)
-
         # if write_cam_params:
             # K = util.get_calibration_matrix_K_from_blender(self.camera.data)
             # with open(os.path.join(output_dir, 'intrinsics.txt'),'w') as intrinsics_file:

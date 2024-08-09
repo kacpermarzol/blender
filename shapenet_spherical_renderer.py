@@ -1,12 +1,26 @@
 import numpy as np
 import os
-import sys
-sys.path.append(os.path.dirname(__file__))
-
 import util
 import blender_interface
 import shutil
 import math
+
+from PIL import Image
+def white_background(folder_path):
+    if not os.path.isdir(folder_path):
+        raise ValueError("not a dir")
+    for file_name in os.listdir(folder_path):
+        file_path = os.path.join(folder_path, file_name)
+
+        if file_name.lower().endswith(('.png', '.jpg', '.jpeg')):
+            try:
+                img = Image.open(file_path).convert("RGBA")
+                white = Image.new("RGBA", img.size, (255, 255, 255, 255))
+                composed_img = Image.alpha_composite(white, img)
+                composed_img = composed_img.convert("RGB")
+                composed_img.save(file_path)
+            except Exception as e:
+                print(f"Failed to process {file_name}: {e}")
 
 def prepare_for_render(obj_location, cam_locations):
     cv_poses = util.look_at(cam_locations, obj_location)
@@ -57,6 +71,7 @@ def render_dataset(srn_path, mode, percent=1):
         obj_pose, blender_poses = prepare_for_render(obj_location, cam_locations)
         renderer.import_mesh(gltf_path, scale=1., object_world_matrix=obj_pose)
         renderer.render(scene_path + '/rgb', blender_poses, write_cam_params=False)
+        white_background(scene_path + '/rgb')
 
         if mode == "train":
             planes_locations = [[1.3, 0.0, 0.0], [-1.3, 0.0, 0.0], [0.0, 0.0, 1.3],
@@ -65,6 +80,7 @@ def render_dataset(srn_path, mode, percent=1):
 
             renderer.import_mesh(gltf_path, scale=1., object_world_matrix=obj_pose)
             renderer.render(scene_path, blender_poses, write_cam_params=True)
+            white_background(scene_path + '/rgb_multi')
 
 if __name__ == '__main__':
     print("Rendering from main, preparation")
@@ -77,8 +93,7 @@ if __name__ == '__main__':
     os.makedirs("shapenet/cars_test", exist_ok=True)
     os.makedirs("shapenet/cars_train", exist_ok=True)
     os.makedirs("shapenet/cars_val", exist_ok=True)
-
     print("start rendering")
-    render_dataset(train, mode="train", percent=0.001)
+    render_dataset(train, mode="train", percent=0.0001)
     render_dataset(test, mode="test", percent=0.001)
     render_dataset(val, mode="val", percent=0.001)
