@@ -34,13 +34,16 @@ def prepare_for_render(obj_location, cam_locations):
 def render_dataset(srn_path, mode, percent=1):
     all_scenes = os.listdir(srn_path)
     x_percent = math.ceil(len(all_scenes) * percent)
-    models_path = '/Users/kacpermarzol/Downloads/shapenetcore-gltf/car'
+    models_path = f'shapenet-gltf/car'  # pliki gltf z shapnet
 
     for scene in all_scenes[:x_percent]:
         gltf_path = models_path + f'/{scene}.gltf'
-        scene_path = f'shapenet/cars_{mode}/' + scene
+        scene_path = f'shapenet2/cars_{mode}/' + scene
+
         os.makedirs(scene_path, exist_ok=True)
         srn_scene_path = os.path.join(srn_path, scene)
+        print(srn_scene_path)
+
         pose = os.path.join(srn_scene_path, "pose")
         intrinsics = os.path.join(srn_scene_path, "intrinsics.txt")
 
@@ -85,15 +88,13 @@ def render_dataset(srn_path, mode, percent=1):
 if __name__ == '__main__':
     print("Rendering from main, preparation")
     renderer = blender_interface.BlenderInterface(resolution=128)
-    gltf = '/Users/kacpermarzol/Downloads/shapenetcore-gltf/car'
-    srn = '/Users/kacpermarzol/Downloads/srn_cars/'
-    train = srn + 'cars_train'
-    test = srn + 'cars_test'
-    val = srn + 'cars_val'
-    os.makedirs("shapenet/cars_test", exist_ok=True)
-    os.makedirs("shapenet/cars_train", exist_ok=True)
-    os.makedirs("shapenet/cars_val", exist_ok=True)
+
+    srn = 'srn_cars' ## dataset z ssdnerfa, obrazy + pozycje + intrinsics
+    train = srn + '/train'
+    test = srn + '/test'
+    val = srn + '/val'
+
     print("start rendering")
-    render_dataset(train, mode="train", percent=0.0001)
-    render_dataset(test, mode="test", percent=0.001)
-    render_dataset(val, mode="val", percent=0.001)
+    render_dataset(train, mode="train", percent=1)
+    # render_dataset(test, mode="test", percent=1)
+    # render_dataset(val, mode="val", percent=1)
